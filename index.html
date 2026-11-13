@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <!-- viewport-fit=cover: la página llega hasta los bordes (Dynamic Island, barra inferior) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <!-- Color de las barras del navegador -->
+  <meta name="theme-color" content="#141518">
+  <!-- Al «Añadir a pantalla de inicio» se abre como una app, sin barras del navegador -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mi entreno">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap" rel="stylesheet">
+  <title>Mi entreno</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; background: #141518; overflow: hidden; overscroll-behavior: none; }
+    body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+           font-weight: 400; color: #ffffff; }
+
+    /* El fondo oscuro cubre toda la pantalla; el contenido respeta la Dynamic Island y los bordes */
+    #marco {
+      position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: #141518;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    #app { display: block; width: 100%; height: 100%; border: 0; background: #141518;
+           opacity: 0; transition: opacity .35s ease; }
+    #app.lista { opacity: 1; }
+    #espera { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center;
+              justify-content: center; color: #b9bec8; font-size: 19px; pointer-events: none; }
+
+    /* Pantalla para crear el enlace de un paciente (solo la ves tú) */
+    #crear { height: 100%; overflow: auto; display: flex; flex-direction: column; justify-content: center;
+             gap: 14px; padding: 24px; max-width: 560px; margin: 0 auto; }
+    #crear h1 { font-size: 24px; font-weight: 400; margin: 0; }
+    #crear p { font-size: 15px; color: #b9bec8; margin: 0; line-height: 1.5; }
+    #crear textarea { width: 100%; min-height: 96px; border-radius: 14px; border: 1px solid #3a3d45;
+                      background: #1d1f24; color: #ffffff; font: inherit; font-size: 14px; padding: 12px; resize: vertical; }
+    #crear button { font: inherit; font-size: 17px; border: none; border-radius: 14px; padding: 14px;
+                    background: #1f6fe5; color: #ffffff; cursor: pointer; }
+    #resultado { word-break: break-all; font-size: 14px; background: #1d1f24; border-radius: 14px; padding: 12px;
+                 user-select: all; -webkit-user-select: all; }
+    #error { color: #ff8a84; font-size: 14px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="marco">
+    <iframe id="app" title="Mi entreno" hidden></iframe>
+
+    <div id="crear" hidden>
+      <h1>Crear el enlace de un paciente</h1>
+      <p>Pega la «URL de la aplicación web» de la hoja del paciente (la que termina en /exec) y pulsa el botón.</p>
+      <textarea id="url" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
+      <button id="generar" type="button">Crear enlace</button>
+      <div id="error" hidden></div>
+      <div id="resultado" hidden></div>
+      <button id="copiar" type="button" hidden>Copiar enlace</button>
+    </div>
+  </div>
+  <div id="espera" hidden>Cargando…</div>
+
+  <script>
+    (function () {
+      var ID_VALIDO = /^[A-Za-z0-9_-]{20,}$/;
+      var id = new URLSearchParams(window.location.search).get('id') || '';
+
+      // ---------- Con ?id=… : se muestra la app del paciente ----------
+      if (ID_VALIDO.test(id)) {
+        var marco = document.getElementById('app');
+        var espera = document.getElementById('espera');
+        var mostrada = false;
+        function mostrar() {
+          if (mostrada) return;
+          mostrada = true;
+          marco.classList.add('lista');
+          espera.hidden = true;
+        }
+        // La app avisa cuando ya está pintada; así no se ve la pantalla en blanco de Google
+        window.addEventListener('message', function (e) {
+          if (e.data && e.data.physioxavi === 'lista') mostrar();
+        });
+        setTimeout(mostrar, 8000);   // por si el aviso no llega
+
+        espera.hidden = false;
+        marco.hidden = false;
+        marco.src = 'https://script.google.com/macros/s/' + id + '/exec';
+        return;
+      }
+
+      // ---------- Sin id: pantalla para crear el enlace ----------
+      var crear = document.getElementById('crear');
+      var campo = document.getElementById('url');
+      var error = document.getElementById('error');
+      var resultado = document.getElementById('resultado');
+      var copiar = document.getElementById('copiar');
+      crear.hidden = false;
+
+      document.getElementById('generar').onclick = function () {
+        error.hidden = true; resultado.hidden = true; copiar.hidden = true;
+        var texto = campo.value.trim();
+        var m = texto.match(/\/macros\/s\/([A-Za-z0-9_-]{20,})(\/|$)/);
+        var nuevoId = m ? m[1] : (ID_VALIDO.test(texto) ? texto : '');
+        if (!nuevoId) {
+          error.textContent = 'No reconozco esa dirección. Tiene que ser la URL de la aplicación web, que termina en /exec.';
+          error.hidden = false;
+          return;
+        }
+        resultado.textContent = window.location.origin + window.location.pathname + '?id=' + nuevoId;
+        resultado.hidden = false;
+        copiar.textContent = 'Copiar enlace';
+        copiar.hidden = false;
+      };
+
+      copiar.onclick = function () {
+        var enlace = resultado.textContent;
+        function hecho() { copiar.textContent = 'Copiado'; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(enlace).then(hecho, seleccionar);
+        } else { seleccionar(); }
+        function seleccionar() {
+          var r = document.createRange(); r.selectNodeContents(resultado);
+          var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          copiar.textContent = 'Mantén pulsado el enlace y elige Copiar';
+        }
+      };
+    })();
+  </script>
+</body>
+</html>
