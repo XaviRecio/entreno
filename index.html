@@ -15,6 +15,9 @@
   <meta name="referrer" content="no-referrer">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" href="icon.png">
+  <!-- Empieza a conectar con Google antes de que cargue la app -->
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="dns-prefetch" href="https://script.googleusercontent.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap" rel="stylesheet">
@@ -87,11 +90,11 @@
         var espera = document.getElementById('espera');
         var mostrada = false;
         var logo = document.getElementById('logo');
-        var desde = Date.now();            // el logo se ve al menos 0,7 s para que dé tiempo a verlo
+        var desde = Date.now();            // el logo se ve al menos 0,4 s para que dé tiempo a verlo
         function mostrar() {
           if (mostrada) return;
           mostrada = true;
-          var espera_ms = Math.max(0, 700 - (Date.now() - desde));
+          var espera_ms = Math.max(0, 400 - (Date.now() - desde));
           setTimeout(function () {
             logo.classList.add('saliendo');       // el logo se difumina…
             marco.classList.add('lista');         // …mientras aparece la app
