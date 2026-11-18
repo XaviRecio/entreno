@@ -5,7 +5,7 @@
   <!-- viewport-fit=cover: la página llega hasta los bordes (Dynamic Island, barra inferior) -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <!-- Color de las barras del navegador -->
-  <meta name="theme-color" content="#060607">
+  <meta name="theme-color" content="#030304">
   <!-- Al «Añadir a pantalla de inicio» se abre como una app, sin barras del navegador -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -25,8 +25,8 @@
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     /* Fondo: negro azabache con un círculo de luz blanca en la esquina superior izquierda que «respira» (igual que el de la app) */
-    :root { --fa: .29; --fr: 94%;
-            --fondo-app: linear-gradient(to top, #060607 0, rgba(6,6,7,0) 130px), radial-gradient(circle at 0% 0%, rgba(255,255,255,var(--fa)) 0%, rgba(255,255,255,0) var(--fr)), #060607; }
+    :root { --fa: .24; --fr: 82%;
+            --fondo-app: radial-gradient(circle at 0% 0%, rgba(255,255,255,var(--fa)) 0%, rgba(255,255,255,0) var(--fr)), #030304; }
     html, body { margin: 0; height: 100%; background: var(--fondo-app); overflow: hidden; overscroll-behavior: none; }
     body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
            font-weight: 400; color: #ffffff; }
@@ -84,7 +84,7 @@
 
   <script>
     var T0 = performance.now();
-    (function () {            // fondo que respira: intensidad 29 % ± 8, tamaño 94 % ± 12, ciclos de 9 s (igual que en la app)
+    (function () {            // fondo que respira: intensidad 24 % ± 6, tamaño 82 % ± 10, ciclos de 9 s (igual que en la app)
       var raiz = document.documentElement, ultimo = 0;
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       function paso(n) {
@@ -92,8 +92,8 @@
         if (n - ultimo < 33) return;
         ultimo = n;
         var f = 2 * Math.PI * (n - T0) / 9000;
-        raiz.style.setProperty('--fa', ((29 + 8 * Math.sin(f)) / 100).toFixed(3));
-        raiz.style.setProperty('--fr', (94 + 12 * Math.sin(f + 1.6)).toFixed(1) + '%');
+        raiz.style.setProperty('--fa', ((24 + 6 * Math.sin(f)) / 100).toFixed(3));
+        raiz.style.setProperty('--fr', (82 + 10 * Math.sin(f + 1.6)).toFixed(1) + '%');
       }
       requestAnimationFrame(paso);
     })();
