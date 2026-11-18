@@ -27,18 +27,22 @@
     /* Fondo: negro azabache con un círculo de luz blanca en la esquina superior izquierda que «respira» (igual que el de la app) */
     :root { --fa: .24; --fk: .9;
             --fondo-app: radial-gradient(circle calc(var(--fk) * 200vw) at 0% 0%, rgba(255,255,255,var(--fa)) 0%, rgba(255,255,255,0) 100%), #030304; }
-    html, body { margin: 0; height: 100%; background: var(--fondo-app); overflow: hidden; overscroll-behavior: none; }
+    /* --falta: en el iPhone, abierta desde la pantalla de inicio, iOS da a la página la altura de la pantalla MENOS la franja de la Dynamic Island,
+       pero la dibuja desde arriba del todo: abajo queda una franja sin página. --falta mide esa franja y lo estiramos todo para cubrirla */
+    html { height: calc(100% + var(--falta, 0px)); }
+    html, body { margin: 0; background: var(--fondo-app); overflow: hidden; overscroll-behavior: none; }
+    body { height: 100%; }
     body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
            font-weight: 400; color: #ffffff; }
 
     /* La app ocupa TODA la pantalla (también bajo la Dynamic Island y la barra inferior); ella misma respeta esas zonas con las medidas que le mandamos */
-    #marco { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: transparent; }
+    #marco { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); background: transparent; }
     #medida { position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
               padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
     #app { display: block; width: 100%; height: 100%; border: 0; background: transparent;
            opacity: 0; transition: opacity .35s ease; }
     #app.lista { opacity: 1; }
-    #espera { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center;
+    #espera { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); display: flex; align-items: center;
               justify-content: center; pointer-events: none; }
     /* Logo de carga: entra con un zoom rápido y sale difuminado */
     .logo-carga { width: min(46vw, 230px); aspect-ratio: 1700 / 220; opacity: 0;
@@ -84,6 +88,20 @@
 
   <script>
     var T0 = performance.now();
+    (function () {            // mide la franja de abajo que iOS deja sin página (solo en la app de la pantalla de inicio y en vertical)
+      function medir() {
+        var f = 0;
+        if (window.navigator.standalone && window.innerHeight > window.innerWidth) {
+          var alto = Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight);
+          f = Math.round(screen.height - alto);
+          if (!(f > 0 && f <= 120)) f = 0;
+        }
+        document.documentElement.style.setProperty('--falta', f + 'px');
+      }
+      medir();
+      window.addEventListener('resize', medir);
+      window.addEventListener('orientationchange', function () { setTimeout(medir, 300); });
+    })();
     (function () {            // fondo que respira: intensidad 24 % ± 6, radio 1,8 veces el ancho ± 0,18, ciclos de 9 s (igual que en la app)
       var raiz = document.documentElement, ultimo = 0;
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
