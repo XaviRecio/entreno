@@ -5,7 +5,7 @@
   <!-- viewport-fit=cover: la página llega hasta los bordes (Dynamic Island, barra inferior) -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <!-- Color de las barras del navegador -->
-  <meta name="theme-color" content="#141518">
+  <meta name="theme-color" content="#060607">
   <!-- Al «Añadir a pantalla de inicio» se abre como una app, sin barras del navegador -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -24,16 +24,18 @@
   <title>Mi entreno</title>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; height: 100%; background: #141518; overflow: hidden; overscroll-behavior: none; }
+    /* Fondo: negro azabache con un círculo de luz blanca en la esquina superior izquierda que «respira» (igual que el de la app) */
+    :root { --fa: .29; --fr: 94%;
+            --fondo-app: radial-gradient(circle at 0% 0%, rgba(255,255,255,var(--fa)) 0%, rgba(255,255,255,0) var(--fr)), #060607; }
+    html, body { margin: 0; height: 100%; background: var(--fondo-app); overflow: hidden; overscroll-behavior: none; }
     body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
            font-weight: 400; color: #ffffff; }
 
-    /* El fondo oscuro cubre toda la pantalla; el contenido respeta la Dynamic Island y los bordes */
-    #marco {
-      position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: #141518;
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    }
-    #app { display: block; width: 100%; height: 100%; border: 0; background: #141518;
+    /* La app ocupa TODA la pantalla (también bajo la Dynamic Island y la barra inferior); ella misma respeta esas zonas con las medidas que le mandamos */
+    #marco { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: transparent; }
+    #medida { position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
+              padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    #app { display: block; width: 100%; height: 100%; border: 0; background: transparent;
            opacity: 0; transition: opacity .35s ease; }
     #app.lista { opacity: 1; }
     #espera { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center;
@@ -64,6 +66,7 @@
   </style>
 </head>
 <body>
+  <div id="medida" aria-hidden="true"></div>
   <div id="marco">
     <iframe id="app" title="Mi entreno" hidden></iframe>
 
@@ -80,6 +83,20 @@
   <div id="espera" hidden><div class="logo-carga" id="logo" role="img" aria-label="physioxavi"></div></div>
 
   <script>
+    var T0 = performance.now();
+    (function () {            // fondo que respira: intensidad 29 % ± 8, tamaño 94 % ± 12, ciclos de 9 s (igual que en la app)
+      var raiz = document.documentElement, ultimo = 0;
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      function paso(n) {
+        requestAnimationFrame(paso);
+        if (n - ultimo < 33) return;
+        ultimo = n;
+        var f = 2 * Math.PI * (n - T0) / 9000;
+        raiz.style.setProperty('--fa', ((29 + 8 * Math.sin(f)) / 100).toFixed(3));
+        raiz.style.setProperty('--fr', (94 + 12 * Math.sin(f + 1.6)).toFixed(1) + '%');
+      }
+      requestAnimationFrame(paso);
+    })();
     (function () {
       var ID_VALIDO = /^[A-Za-z0-9_-]{20,}$/;
       var id = new URLSearchParams(window.location.search).get('id') || '';
@@ -102,9 +119,24 @@
           }, espera_ms);
         }
         // La app avisa cuando ya está pintada; así no se ve la pantalla en blanco de Google
+        var ventanaApp = null;
         window.addEventListener('message', function (e) {
-          if (e.data && e.data.physioxavi === 'lista') mostrar();
+          if (!e.data) return;
+          if (e.data.physioxavi === 'hola' || e.data.physioxavi === 'lista') { ventanaApp = e.source; mandarAjustes(); }
+          if (e.data.physioxavi === 'lista') mostrar();
         });
+        // Le decimos a la app cuánto miden la Dynamic Island y la barra inferior, y a qué punto va el fondo animado (para que no haya saltos)
+        function mandarAjustes() {
+          if (!ventanaApp) return;
+          var c = getComputedStyle(document.getElementById('medida'));
+          try {
+            ventanaApp.postMessage({ physioxavi: 'ajustes', t: parseFloat(c.paddingTop) || 0, r: parseFloat(c.paddingRight) || 0,
+                                     b: parseFloat(c.paddingBottom) || 0, l: parseFloat(c.paddingLeft) || 0,
+                                     ms: performance.now() - T0 }, '*');
+          } catch (err) {}
+        }
+        window.addEventListener('resize', mandarAjustes);
+        window.addEventListener('orientationchange', mandarAjustes);
         setTimeout(mostrar, 8000);   // por si el aviso no llega
 
         desde = Date.now();
