@@ -22,6 +22,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap" rel="stylesheet">
   <title>Mi entreno</title>
+  <!-- Android: el «manifiesto» hace que, al añadirla a la pantalla de inicio, se abra como una app (sin las barras de Chrome).
+       En iPhone no se pone, para no cambiar nada de lo que ya funciona allí. -->
+  <script>
+    (function () {
+      var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (ios) return;
+      var l = document.createElement('link');
+      l.rel = 'manifest';
+      l.href = 'manifest.webmanifest';
+      document.head.appendChild(l);
+    })();
+  </script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     /* Fondo: negro azabache con un círculo de luz blanca en la esquina superior izquierda que «respira» (igual que el de la app) */
@@ -59,6 +71,10 @@
              gap: 14px; padding: 24px; max-width: 560px; margin: 0 auto; }
     #crear h1 { font-size: 24px; font-weight: 400; margin: 0; }
     #crear p { font-size: 15px; color: #b9bec8; margin: 0; line-height: 1.5; }
+    #sin-enlace { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;
+                  gap: 10px; padding: 32px; text-align: center; }
+    #sin-enlace h1 { font-size: 22px; font-weight: 400; margin: 0; }
+    #sin-enlace p { font-size: 15px; color: #b9bec8; margin: 0; line-height: 1.5; max-width: 320px; }
     #crear textarea { width: 100%; min-height: 96px; border-radius: 14px; border: 1px solid #3a3d45;
                       background: #1d1f24; color: #ffffff; font: inherit; font-size: 14px; padding: 12px; resize: vertical; }
     #crear button { font: inherit; font-size: 17px; border: none; border-radius: 14px; padding: 14px;
@@ -73,6 +89,11 @@
   <div id="medida" aria-hidden="true"></div>
   <div id="marco">
     <iframe id="app" title="Mi entreno" hidden></iframe>
+
+    <div id="sin-enlace" hidden>
+      <h1>Falta tu enlace</h1>
+      <p>Abre una vez el enlace que te ha enviado tu fisioterapeuta. A partir de ahí, la app se abrirá sola desde este icono.</p>
+    </div>
 
     <div id="crear" hidden>
       <h1>Crear el enlace de un paciente</h1>
@@ -117,7 +138,18 @@
     })();
     (function () {
       var ID_VALIDO = /^[A-Za-z0-9_-]{20,}$/;
-      var id = new URLSearchParams(window.location.search).get('id') || '';
+      var params = new URLSearchParams(window.location.search);
+      var id = params.get('id') || '';
+      // El icono de Android abre la página sin el enlace del paciente (?abrir=app): por eso guardamos su enlace la
+      // primera vez que lo abre y lo recuperamos al abrir desde el icono. En iPhone el icono ya lleva el enlace completo.
+      var CLAVE_ID = 'physioxavi_id_v1';
+      var comoApp = params.get('abrir') === 'app' || window.navigator.standalone === true ||
+                    !!(window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches));
+      if (ID_VALIDO.test(id)) {
+        try { localStorage.setItem(CLAVE_ID, id); } catch (e) {}
+      } else if (comoApp) {
+        try { var guardado = localStorage.getItem(CLAVE_ID) || ''; if (ID_VALIDO.test(guardado)) id = guardado; } catch (e) {}
+      }
 
       // ---------- Con ?id=… : se muestra la app del paciente ----------
       if (ID_VALIDO.test(id)) {
@@ -161,6 +193,12 @@
         espera.hidden = false;
         marco.hidden = false;
         marco.src = 'https://script.google.com/macros/s/' + id + '/exec';
+        return;
+      }
+
+      // ---------- Abierta desde el icono pero sin enlace guardado: se le pide abrir su enlace (no ve la pantalla de crear enlaces) ----------
+      if (comoApp) {
+        document.getElementById('sin-enlace').hidden = false;
         return;
       }
 
