@@ -25,8 +25,8 @@
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     /* Fondo: negro azabache con un círculo de luz blanca en la esquina superior izquierda que «respira» (igual que el de la app) */
-    :root { --fa: .24; --fr: 82%;
-            --fondo-app: radial-gradient(circle at 0% 0%, rgba(255,255,255,var(--fa)) 0%, rgba(255,255,255,0) var(--fr)), #030304; }
+    :root { --fa: .24; --fk: .9;
+            --fondo-app: radial-gradient(circle calc(var(--fk) * 200vw) at 0% 0%, rgba(255,255,255,var(--fa)) 0%, rgba(255,255,255,0) 100%), #030304; }
     html, body { margin: 0; height: 100%; background: var(--fondo-app); overflow: hidden; overscroll-behavior: none; }
     body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
            font-weight: 400; color: #ffffff; }
@@ -84,7 +84,7 @@
 
   <script>
     var T0 = performance.now();
-    (function () {            // fondo que respira: intensidad 24 % ± 6, tamaño 82 % ± 10, ciclos de 9 s (igual que en la app)
+    (function () {            // fondo que respira: intensidad 24 % ± 6, radio 1,8 veces el ancho ± 0,18, ciclos de 9 s (igual que en la app)
       var raiz = document.documentElement, ultimo = 0;
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       function paso(n) {
@@ -93,7 +93,7 @@
         ultimo = n;
         var f = 2 * Math.PI * (n - T0) / 9000;
         raiz.style.setProperty('--fa', ((24 + 6 * Math.sin(f)) / 100).toFixed(3));
-        raiz.style.setProperty('--fr', (82 + 10 * Math.sin(f + 1.6)).toFixed(1) + '%');
+        raiz.style.setProperty('--fk', (0.9 + 0.09 * Math.sin(f + 1.6)).toFixed(3));
       }
       requestAnimationFrame(paso);
     })();
