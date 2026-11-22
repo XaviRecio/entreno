@@ -48,6 +48,10 @@
            font-weight: 400; color: #ffffff; }
 
     /* La app ocupa TODA la pantalla (también bajo la Dynamic Island y la barra inferior); ella misma respeta esas zonas con las medidas que le mandamos */
+    /* #pie: capa que queda DETRÁS de la app y solo se ve si la app no llega hasta el borde de abajo (franja que deja iOS). La app le pide color
+       mientras se ve la cúpula de «Dejar la sesión aquí», para que esa franja sea del mismo color que la cúpula y no quede un bloque negro. */
+    #pie { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); pointer-events: none;
+           background-color: var(--pie, rgba(255, 255, 255, 0)); transition: background-color .25s ease; }
     #marco { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); background: transparent; }
     #medida { position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
               padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
@@ -87,6 +91,7 @@
 </head>
 <body>
   <div id="medida" aria-hidden="true"></div>
+  <div id="pie" aria-hidden="true"></div>
   <div id="marco">
     <iframe id="app" title="Mi entreno" hidden></iframe>
 
@@ -174,6 +179,10 @@
           if (!e.data) return;
           if (e.data.physioxavi === 'hola' || e.data.physioxavi === 'lista') { ventanaApp = e.source; mandarAjustes(); }
           if (e.data.physioxavi === 'lista') mostrar();
+          if (e.data.physioxavi === 'pie' && (!ventanaApp || e.source === ventanaApp)) {   // color de la franja de abajo (solo lo que manda la app)
+            var c = String(e.data.c || '');
+            document.documentElement.style.setProperty('--pie', /^#[0-9a-f]{6}$/i.test(c) ? c : 'rgba(255, 255, 255, 0)');
+          }
         });
         // Le decimos a la app cuánto miden la Dynamic Island y la barra inferior, y a qué punto va el fondo animado (para que no haya saltos)
         function mandarAjustes() {
