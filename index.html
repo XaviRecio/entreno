@@ -39,9 +39,10 @@
     /* Fondo: negro azabache con un círculo de luz blanca en la esquina superior izquierda que «respira» (igual que el de la app) */
     :root { --fa: .24; --fk: .9;
             --fondo-app: radial-gradient(circle calc(var(--fk) * 200vw) at 0% 0%, rgba(255,255,255,var(--fa)) 0%, rgba(255,255,255,0) 100%), #030304; }
-    /* --falta: en el iPhone, abierta desde la pantalla de inicio, iOS da a la página la altura de la pantalla MENOS la franja de la Dynamic Island,
-       pero la dibuja desde arriba del todo: abajo queda una franja sin página. --falta mide esa franja y lo estiramos todo para cubrirla */
-    html { height: calc(100% + var(--falta, 0px)); }
+    /* --alto: en el iPhone, abierta desde la pantalla de inicio, iOS a veces da a la página menos altura que la pantalla (queda una franja abajo) y mide
+       distinto según se pregunte («altura de la ventana» o «100 %»). Por eso, en ese caso, a las capas que cubren la pantalla se les da directamente la
+       altura de la pantalla, que sí es un dato fiable. Si no hace falta (Safari, Android, ordenador), --alto no existe y se usa el 100 % de siempre. */
+    html { height: var(--alto, 100%); }
     html, body { margin: 0; background: var(--fondo-app); overflow: hidden; overscroll-behavior: none; }
     body { height: 100%; }
     body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
@@ -50,15 +51,15 @@
     /* La app ocupa TODA la pantalla (también bajo la Dynamic Island y la barra inferior); ella misma respeta esas zonas con las medidas que le mandamos */
     /* #pie: capa que queda DETRÁS de la app y solo se ve si la app no llega hasta el borde de abajo (franja que deja iOS). La app le pide color
        mientras se ve la cúpula de «Dejar la sesión aquí», para que esa franja sea del mismo color que la cúpula y no quede un bloque negro. */
-    #pie { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); pointer-events: none;
+    #pie { position: fixed; top: 0; right: 0; left: 0; height: var(--alto, 100%); pointer-events: none;
            background-color: var(--pie, rgba(255, 255, 255, 0)); transition: background-color .25s ease; }
-    #marco { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); background: transparent; }
+    #marco { position: fixed; top: 0; right: 0; left: 0; height: var(--alto, 100%); background: transparent; }
     #medida { position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
               padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
     #app { display: block; width: 100%; height: 100%; border: 0; background: transparent;
            opacity: 0; transition: opacity .35s ease; }
     #app.lista { opacity: 1; }
-    #espera { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); display: flex; align-items: center;
+    #espera { position: fixed; top: 0; right: 0; left: 0; height: var(--alto, 100%); display: flex; align-items: center;
               justify-content: center; pointer-events: none; }
     /* Logo de carga: entra con un zoom rápido y sale difuminado */
     .logo-carga { width: min(46vw, 230px); aspect-ratio: 1700 / 220; opacity: 0;
@@ -114,18 +115,16 @@
 
   <script>
     var T0 = performance.now();
-    (function () {            // mide la franja de abajo que iOS deja sin página (solo en la app de la pantalla de inicio y en vertical)
+    (function () {            // en la app de la pantalla de inicio del iPhone (en vertical): las capas miden exactamente la altura de la pantalla
       function medir() {
-        var f = 0;
-        if (window.navigator.standalone && window.innerHeight > window.innerWidth) {
-          var alto = Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight);
-          // Si iOS dibuja la página reducida (p. ej. a 85 %), sus «px» son más pequeños que los de la pantalla: se convierte todo a px de la página
-          var esc = screen.width ? window.innerWidth / screen.width : 1;
+        var raiz = document.documentElement, alto = 0;
+        if (window.navigator.standalone && window.innerHeight > window.innerWidth && screen.width && screen.height) {
+          // si iOS dibuja la página reducida (p. ej. a 85 %), sus «px» son más pequeños que los de la pantalla: se convierte a px de la página
+          var esc = window.innerWidth / screen.width;
           if (!(esc >= 0.5 && esc <= 2)) esc = 1;
-          f = Math.round(screen.height * esc - alto);
-          if (!(f > 0 && f <= 160)) f = 0;
+          alto = Math.round(screen.height * esc);
         }
-        document.documentElement.style.setProperty('--falta', f + 'px');
+        if (alto > 0) raiz.style.setProperty('--alto', alto + 'px'); else raiz.style.removeProperty('--alto');
       }
       medir();
       window.addEventListener('resize', medir);
