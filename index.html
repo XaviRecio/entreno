@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <!-- viewport-fit=cover: la página llega hasta los bordes (Dynamic Island, barra inferior) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <!-- Color de las barras del navegador -->
   <meta name="theme-color" content="#030304">
   <!-- Al «Añadir a pantalla de inicio» se abre como una app, sin barras del navegador -->
@@ -52,9 +52,6 @@
        mientras se ve la cúpula de «Dejar la sesión aquí», para que esa franja sea del mismo color que la cúpula y no quede un bloque negro. */
     #pie { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); pointer-events: none;
            background-color: var(--pie, rgba(255, 255, 255, 0)); transition: background-color .25s ease; }
-    /* PRUEBA: recuadro con medidas (se quitará en la versión final) */
-    #diag { position: fixed; left: 8px; right: 8px; top: 38%; z-index: 9999; margin: 0; padding: 8px 10px; border-radius: 10px; pointer-events: none;
-            background: rgba(0, 0, 0, .82); color: #7CFF9B; font: 11px/1.35 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
     #marco { position: fixed; top: 0; right: 0; left: 0; height: calc(100% + var(--falta, 0px)); background: transparent; }
     #medida { position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
               padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
@@ -95,7 +92,6 @@
 <body>
   <div id="medida" aria-hidden="true"></div>
   <div id="pie" aria-hidden="true"></div>
-  <pre id="diag" aria-hidden="true">midiendo…</pre>
   <div id="marco">
     <iframe id="app" title="Mi entreno" hidden></iframe>
 
@@ -123,8 +119,11 @@
         var f = 0;
         if (window.navigator.standalone && window.innerHeight > window.innerWidth) {
           var alto = Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight);
-          f = Math.round(screen.height - alto);
-          if (!(f > 0 && f <= 120)) f = 0;
+          // Si iOS dibuja la página reducida (p. ej. a 85 %), sus «px» son más pequeños que los de la pantalla: se convierte todo a px de la página
+          var esc = screen.width ? window.innerWidth / screen.width : 1;
+          if (!(esc >= 0.5 && esc <= 2)) esc = 1;
+          f = Math.round(screen.height * esc - alto);
+          if (!(f > 0 && f <= 160)) f = 0;
         }
         document.documentElement.style.setProperty('--falta', f + 'px');
       }
@@ -251,29 +250,6 @@
           copiar.textContent = 'Mantén pulsado el enlace y elige Copiar';
         }
       };
-    })();
-  </script>
-  <script>
-    /* PRUEBA: medidas en pantalla para saber por qué queda una franja negra abajo */
-    (function () {
-      var n = 0, ultimo = '-', caja = document.getElementById('diag');
-      window.addEventListener('message', function (e) { if (e.data && e.data.physioxavi === 'pie') { n++; ultimo = e.data.c || '(vacío)'; } });
-      function r(b) { return Math.round(b.top) + '→' + Math.round(b.bottom) + ' (' + Math.round(b.height) + ')'; }
-      function medir() {
-        var d = document.documentElement, cs = getComputedStyle(d), q = function (id) { return document.getElementById(id); };
-        var vv = window.visualViewport ? Math.round(visualViewport.height) : '-';
-        caja.textContent = [
-          'ventana ' + innerWidth + 'x' + innerHeight + ' | documento ' + d.clientHeight + ' | visual ' + vv,
-          'pantalla ' + screen.width + 'x' + screen.height + ' | standalone ' + navigator.standalone,
-          'falta ' + cs.getPropertyValue('--falta').trim() + ' | zona segura abajo ' + getComputedStyle(q('medida')).paddingBottom,
-          'marco ' + r(q('marco').getBoundingClientRect()),
-          'iframe ' + r(q('app').getBoundingClientRect()),
-          'franja(pie) ' + r(q('pie').getBoundingClientRect()),
-          'color pie ' + (cs.getPropertyValue('--pie').trim() || '(ninguno)'),
-          'avisos de la app: ' + n + ' | último ' + ultimo
-        ].join('\n');
-      }
-      setInterval(medir, 700); medir();
     })();
   </script>
 </body>
